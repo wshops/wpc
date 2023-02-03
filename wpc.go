@@ -5,6 +5,7 @@ import (
 	"github.com/gookit/slog"
 	"sync"
 	"time"
+	"wpc/wpclogger"
 )
 
 type wpc struct {
@@ -23,30 +24,34 @@ func New(connectionUrl string, pulsarOptions ...*pulsar.ClientOptions) *wpc {
 			URL:               connectionUrl,
 			OperationTimeout:  30 * time.Second,
 			ConnectionTimeout: 30 * time.Second,
-			Logger:            nil,
+			Logger:            wpclogger.NewWpcLogger(),
 		})
 	} else {
 		pulsarOptions[0].URL = connectionUrl
+		pulsarOptions[0].Logger = wpclogger.NewWpcLogger()
 		c, err = pulsar.NewClient(*pulsarOptions[0])
 	}
 	if err != nil {
 		slog.Fatal(err)
 	}
-	return &wpc{
+	instance = &wpc{
 		pulsarClient: c,
 	}
+	return instance
 }
 
 func Close() {
-	instance.producerMap.Range(func(key, value interface{}) bool {
-		value.(pulsar.Producer).Close()
-		return true
-	})
-	instance.subscriberMap.Range(func(key, value interface{}) bool {
-		value.(*wpcSubscriber).Close()
-		return true
-	})
-	instance.pulsarClient.Close()
+	if instance != nil {
+		instance.producerMap.Range(func(key, value interface{}) bool {
+			value.(pulsar.Producer).Close()
+			return true
+		})
+		instance.subscriberMap.Range(func(key, value interface{}) bool {
+			value.(*wpcSubscriber).Close()
+			return true
+		})
+		instance.pulsarClient.Close()
+	}
 }
 
 func (w *wpc) GetProducer(topic string) pulsar.Producer {

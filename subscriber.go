@@ -5,11 +5,16 @@ import (
 	"encoding/hex"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gookit/slog"
+	"sync"
 	"time"
 	"wpc/workerpool"
 )
 
-type MessageHandler func(qmsg *pulsar.Message) error
+// https://github.com/chinagocoder/go-queue/blob/main/pq/consumer.go
+// https://github.com/AlexCuse/watermill-pulsar/blob/main/pkg/pulsar/subscriber.go
+// https://github.com/utain/poc-realtime-go/blob/main/withpulsar/withpulsar.go
+
+type MessageHandler func(msg *Message) error
 type wpcSubscriber struct {
 	topic          string
 	handler        MessageHandler
@@ -17,6 +22,7 @@ type wpcSubscriber struct {
 	pulsarConsumer pulsar.Consumer
 	messageChannel chan pulsar.ConsumerMessage
 	workerPool     *workerpool.Pool[*wpcSubscriber]
+	waitGroup      sync.WaitGroup
 }
 
 func NewWpcSubscriber(h MessageHandler) *wpcSubscriber {
@@ -66,17 +72,29 @@ func (w *wpcSubscriber) Start() {
 	if w.handler == nil {
 		slog.Fatal("please set message handler first")
 	}
+	w.waitGroup = sync.WaitGroup{}
 	w.workerPool = workerpool.New[*wpcSubscriber](workerpool.Config{
 		MaxWorkersCount:       uint(w.workerNum),
 		MaxIdleWorkerDuration: 5 * time.Second,
 	}, workerMessageProcessor)
 	instance.subscriberMap.Store(w.topic, w)
+	w.waitGroup.Add(1)
 	w.workerPool.Exec(w)
+	w.waitGroup.Wait()
 }
 
 func workerMessageProcessor(w *wpcSubscriber) {
 	for cm := range w.messageChannel {
-		if err := w.handler(&cm.Message); err != nil {
+		m := AcquireMessage()
+		m.Topic = cm.Message.Topic()
+		m.Payload = cm.Message.Payload()
+		m.Properties = cm.Message.Properties()
+		m.MessageId = cm.Message.ID().Serialize()
+		m.PublishTime = cm.Message.PublishTime()
+		m.EventTime = cm.Message.EventTime()
+		m.RedeliveryCount = int(cm.Message.RedeliveryCount())
+		m.ProducerName = cm.Message.ProducerName()
+		if err := w.handler(m); err != nil {
 			slog.Error(err)
 			cm.Nack(cm.Message)
 		}
@@ -84,7 +102,9 @@ func workerMessageProcessor(w *wpcSubscriber) {
 		if err != nil {
 			slog.Error(err)
 		}
+		ReleaseMessage(m)
 	}
+	w.waitGroup.Done()
 }
 
 func md5Encode(str string) string {
