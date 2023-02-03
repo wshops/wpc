@@ -1,10 +1,10 @@
 package workerpool
 
 import (
+	"github.com/wshops/wpc/ptime"
 	"runtime"
 	"sync"
 	"time"
-	"wpc/ptime"
 )
 
 var workerChanCap = func() int {

@@ -3,9 +3,9 @@ package wpc
 import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gookit/slog"
+	"github.com/wshops/wpc/wpclogger"
 	"sync"
 	"time"
-	"wpc/wpclogger"
 )
 
 type wpc struct {

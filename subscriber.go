@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gookit/slog"
+	"github.com/wshops/wpc/workerpool"
 	"sync"
 	"time"
-	"wpc/workerpool"
 )
 
 // https://github.com/chinagocoder/go-queue/blob/main/pq/consumer.go
