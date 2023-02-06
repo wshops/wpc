@@ -72,7 +72,6 @@ func (w *wpc) GetProducer(topic string) pulsar.Producer {
 func Pd(topic string) pulsar.Producer {
 	return instance.GetProducer(topic)
 }
-
 func (w *wpc) GetClient() pulsar.Client {
 	return w.pulsarClient
 }
