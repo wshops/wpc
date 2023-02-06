@@ -16,9 +16,10 @@ type wpc struct {
 
 var instance *wpc
 
-func New(connectionUrl string, pulsarOptions ...*pulsar.ClientOptions) *wpc {
+func New(connectionUrl string, logLevel slog.Level, pulsarOptions ...*pulsar.ClientOptions) *wpc {
 	var c pulsar.Client
 	var err error
+	slog.SetLogLevel(logLevel)
 	if len(pulsarOptions) == 0 {
 		c, err = pulsar.NewClient(pulsar.ClientOptions{
 			URL:               connectionUrl,
