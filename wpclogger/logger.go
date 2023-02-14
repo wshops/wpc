@@ -2,8 +2,20 @@ package wpclogger
 
 import (
 	"github.com/apache/pulsar-client-go/pulsar/log"
-	"github.com/gookit/slog"
+	"go.uber.org/zap"
 )
+
+var zlog *ZapLog
+
+type ZapLog struct {
+	sl *zap.SugaredLogger
+}
+
+func SetLogger(logger *zap.SugaredLogger) {
+	zlog = &ZapLog{
+		sl: logger,
+	}
+}
 
 type WpcLogger struct {
 	le *LogEntry
@@ -16,7 +28,7 @@ func NewWpcLogger() *WpcLogger {
 }
 
 func (w *WpcLogger) SubLogger(fields log.Fields) log.Logger {
-	slog.WithFields(slog.M(fields))
+	zlog.sl.With(fields)
 	return w
 }
 
@@ -33,35 +45,35 @@ func (w *WpcLogger) WithError(err error) log.Entry {
 }
 
 func (w *WpcLogger) Debug(args ...interface{}) {
-	slog.Debug(args...)
+	zlog.sl.Debug(args...)
 }
 
 func (w *WpcLogger) Info(args ...interface{}) {
-	slog.Info(args...)
+	zlog.sl.Info(args...)
 }
 
 func (w *WpcLogger) Warn(args ...interface{}) {
-	slog.Warn(args...)
+	zlog.sl.Warn(args...)
 }
 
 func (w *WpcLogger) Error(args ...interface{}) {
-	slog.Error(args...)
+	zlog.sl.Error(args...)
 }
 
 func (w *WpcLogger) Debugf(format string, args ...interface{}) {
-	slog.Debugf(format, args...)
+	zlog.sl.Debugf(format, args...)
 }
 
 func (w *WpcLogger) Infof(format string, args ...interface{}) {
-	slog.Infof(format, args...)
+	zlog.sl.Infof(format, args...)
 }
 
 func (w *WpcLogger) Warnf(format string, args ...interface{}) {
-	slog.Warnf(format, args...)
+	zlog.sl.Warnf(format, args...)
 }
 
 func (w *WpcLogger) Errorf(format string, args ...interface{}) {
-	slog.Errorf(format, args...)
+	zlog.sl.Errorf(format, args...)
 }
 
 type LogEntry struct {
@@ -72,43 +84,43 @@ func NewLogEntry() *LogEntry {
 }
 
 func (l *LogEntry) WithFields(fields log.Fields) log.Entry {
-	slog.WithFields(slog.M(fields))
+	zlog.sl.With(fields)
 	return l
 }
 
 func (l *LogEntry) WithField(name string, value interface{}) log.Entry {
-	slog.WithFields(map[string]any{name: value})
+	zlog.sl.With(name, value)
 	return l
 }
 
 func (l *LogEntry) Debug(args ...interface{}) {
-	slog.Debug(args...)
+	zlog.sl.Debug(args...)
 }
 
 func (l *LogEntry) Info(args ...interface{}) {
-	slog.Info(args...)
+	zlog.sl.Info(args...)
 }
 
 func (l *LogEntry) Warn(args ...interface{}) {
-	slog.Warn(args...)
+	zlog.sl.Warn(args...)
 }
 
 func (l *LogEntry) Error(args ...interface{}) {
-	slog.Error(args...)
+	zlog.sl.Error(args...)
 }
 
 func (l *LogEntry) Debugf(format string, args ...interface{}) {
-	slog.Debugf(format, args...)
+	zlog.sl.Debugf(format, args...)
 }
 
 func (l *LogEntry) Infof(format string, args ...interface{}) {
-	slog.Infof(format, args...)
+	zlog.sl.Infof(format, args...)
 }
 
 func (l *LogEntry) Warnf(format string, args ...interface{}) {
-	slog.Warnf(format, args...)
+	zlog.sl.Warnf(format, args...)
 }
 
 func (l *LogEntry) Errorf(format string, args ...interface{}) {
-	slog.Errorf(format, args...)
+	zlog.sl.Errorf(format, args...)
 }
