@@ -28,7 +28,7 @@ func NewWpcLogger() *WpcLogger {
 }
 
 func (w *WpcLogger) SubLogger(fields log.Fields) log.Logger {
-	zlog.sl.With(fields)
+	zlog.sl.With("fields", fields)
 	return w
 }
 
@@ -84,7 +84,7 @@ func NewLogEntry() *LogEntry {
 }
 
 func (l *LogEntry) WithFields(fields log.Fields) log.Entry {
-	zlog.sl.With(fields)
+	zlog.sl.With("fields", fields)
 	return l
 }
 
