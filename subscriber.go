@@ -4,8 +4,8 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/gookit/slog"
 	"github.com/wshops/wpc/workerpool"
+	"github.com/wshops/zlog"
 	"sync"
 	"time"
 )
@@ -56,7 +56,7 @@ func (w *wpcSubscriber) Subscribe(topic string, consumerOptions ...*pulsar.Consu
 		c, err = instance.GetClient().Subscribe(*consumerOptions[0])
 	}
 	if err != nil {
-		slog.Fatal(err)
+		zlog.Log().Fatal(err)
 	}
 	w.pulsarConsumer = c
 	return w
@@ -67,10 +67,10 @@ func (w *wpcSubscriber) Start() {
 		w.workerNum = 1
 	}
 	if w.pulsarConsumer == nil {
-		slog.Fatal("please subscribe first")
+		zlog.Log().Fatal("please subscribe first")
 	}
 	if w.handler == nil {
-		slog.Fatal("please set message handler first")
+		zlog.Log().Fatal("please set message handler first")
 	}
 	w.waitGroup = sync.WaitGroup{}
 	w.workerPool = workerpool.New[*wpcSubscriber](workerpool.Config{
@@ -95,12 +95,12 @@ func workerMessageProcessor(w *wpcSubscriber) {
 		m.RedeliveryCount = int(cm.Message.RedeliveryCount())
 		m.ProducerName = cm.Message.ProducerName()
 		if err := w.handler(m); err != nil {
-			slog.Error(err)
+			zlog.Log().Error(err)
 			cm.Nack(cm.Message)
 		}
 		err := cm.Ack(cm.Message)
 		if err != nil {
-			slog.Error(err)
+			zlog.Log().Error(err)
 		}
 		ReleaseMessage(m)
 	}

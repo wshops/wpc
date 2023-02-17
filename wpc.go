@@ -4,6 +4,8 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gookit/slog"
 	"github.com/wshops/wpc/wpclogger"
+	"github.com/wshops/zlog"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -16,10 +18,9 @@ type wpc struct {
 
 var instance *wpc
 
-func New(connectionUrl string, logLevel slog.Level, pulsarOptions ...*pulsar.ClientOptions) *wpc {
+func New(connectionUrl string, logger *zap.SugaredLogger, pulsarOptions ...*pulsar.ClientOptions) *wpc {
 	var c pulsar.Client
 	var err error
-	slog.SetLogLevel(logLevel)
 	if len(pulsarOptions) == 0 {
 		c, err = pulsar.NewClient(pulsar.ClientOptions{
 			URL:               connectionUrl,
@@ -33,7 +34,7 @@ func New(connectionUrl string, logLevel slog.Level, pulsarOptions ...*pulsar.Cli
 		c, err = pulsar.NewClient(*pulsarOptions[0])
 	}
 	if err != nil {
-		slog.Fatal(err)
+		zlog.Log().Fatal(err)
 	}
 	instance = &wpc{
 		pulsarClient: c,
