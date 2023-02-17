@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gookit/slog"
-	"go.uber.org/zap"
+	"github.com/wshops/zlog"
 	"testing"
 	"time"
 )
 
-const pulsarUrl = "pulsar+ssl://wshop-test-1421d17d-7ede-40e5-994e-01f15c705276.gcp-shared-gcp-usce1-martin.streamnative.g.snio.cloud:6651"
-const pulsarToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik5rRXdSVVU1TUVOQlJrWTJNalEzTVRZek9FVkZRVVUyT0RNME5qUkRRVEU1T1VNMU16STVPUSJ9.eyJodHRwczovL3N0cmVhbW5hdGl2ZS5pby91c2VybmFtZSI6ImFueHVhbnppQHctc2hvcHMuY29tIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLnN0cmVhbW5hdGl2ZS5jbG91ZC8iLCJzdWIiOiJhdXRoMHw2M2RjNTNjYWFlNDYxNzk3NTQ2MWQ1NDciLCJhdWQiOlsidXJuOnNuOnB1bHNhcjpvLXlmMW11OndzaG9wLXRlc3QiLCJodHRwczovL3N0cmVhbW5hdGl2ZS1wcm9kLXVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE2NzUzODU0OTcsImV4cCI6MTY3NTk5MDI5NywiYXpwIjoiQUpZRWRIV2k5RUZla0VhVVhrUFdBMk1xUTNscTFOckkiLCJzY29wZSI6Im9wZW5pZCBlbWFpbCBhZG1pbiIsInBlcm1pc3Npb25zIjpbImFkbWluIl19.GOdFu8HD9BHEeIUa8DNl-11YE_phvnOrE5IMvgvuzOcBPVZ96a3vvbaYoM3tFdmoEqCoYmzf-rvt5Lb0h_ypCwJwdnauUqO-3oFY9V_imE3g9BtNtysK6LOQeEjo9y9LWvurNb1b7PCP4bUS5dTXLoD20wgHbtEkSOvYhYXJuNwqIO1RPw766DAcrSPKrDKZCH5Ck-FZLgoIEalqYHwzS-4rvd4CndpKfsOGmxbcxouEKKlRFiYr3RFfnZFQwxoyC8PYnXDkeQA26yqx_cxHz1tGauNEUcU03ucSblj40Ipd3OvhrpKEov7HP9e37muAptcSYiHpGqj_ObqTE22How"
+const pulsarUrl = "pulsar+ssl://pulsar.cloud.wshop.info:32247"
+const pulsarToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.n9kWq0OPzkSkD2K29XCdbA9weQaXWkabBk7iLchgb7IAgQt_UmpmcpUTWdIoyPR0h2fgVUMk84DjCvFc_o1zkQMA_SCjE0KW-CkpTfxq1wRRGj3R25env5qL8vbSJOkQtMxY5S6AQ-hYpJUqKIpBZYH01AxFxjg-uWNB65WVbJ7GZFMM7zpMsIKNhMIKkjeSDQlpXHcBZfNuXl5QJnI3-a7QHEEUBn03teUNmXLRxAL6kEPFoSh5dmlyOHiLQCChiRwcv4aqbmCf8Y8oI6K5dGIcGw68xsdjtUu-NbLSMPTc2fKdysfaJJ1vHbKlKC-sY3WtC1O1IWsqswenCeOetQ"
 
 func TestCreateClient(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	wt := New(pulsarUrl, logger.Sugar(), &pulsar.ClientOptions{
-		Authentication: pulsar.NewAuthenticationToken(pulsarToken),
+	zlog.New(zlog.LevelDev)
+	wt := New(pulsarUrl, zlog.Log(), &pulsar.ClientOptions{
+		TLSAllowInsecureConnection: true,
+		TLSValidateHostname:        false,
+		Authentication:             pulsar.NewAuthenticationToken(pulsarToken),
 	})
 	t.Cleanup(func() {
 		Close()
@@ -27,14 +29,16 @@ func TestCreateClient(t *testing.T) {
 }
 
 func setUpConn() {
-	logger, _ := zap.NewDevelopment()
-	New(pulsarUrl, logger.Sugar(), &pulsar.ClientOptions{
-		Authentication: pulsar.NewAuthenticationToken(pulsarToken),
+	zlog.New(zlog.LevelDev)
+	New(pulsarUrl, zlog.Log(), &pulsar.ClientOptions{
+		TLSAllowInsecureConnection: true,
+		TLSValidateHostname:        false,
+		Authentication:             pulsar.NewAuthenticationToken(pulsarToken),
 	})
 }
 
 func TestCreateProducer(t *testing.T) {
-	topic := "persistent://dev-test/test/mq-topic-1"
+	topic := "test-produce-topic"
 	setUpConn()
 	t.Cleanup(func() {
 		Close()
@@ -52,7 +56,7 @@ func TestSendMessage(t *testing.T) {
 	t.Cleanup(func() {
 		Close()
 	})
-	p := Pd("persistent://dev-test/test/mq-topic-1")
+	p := Pd("test-send-topic")
 	mid, err := p.Send(context.Background(), &pulsar.ProducerMessage{
 		Payload:   []byte("hello world"),
 		EventTime: time.Now(),
@@ -69,13 +73,13 @@ func TestConsumeMessage(t *testing.T) {
 		Close()
 	})
 	go NewWpcSubscriber(func(msg *Message) error {
-		slog.Info("receive message: ", string(msg.Payload))
+		zlog.Log().Info("receive message: ", string(msg.Payload))
 		return nil
-	}).Subscribe("persistent://dev-test/test/mq-topic-1").
+	}).Subscribe("test-send-topic").
 		SetWorkerNum(1).
 		Start()
 	time.Sleep(time.Second * 5)
-	p := Pd("persistent://dev-test/test/mq-topic-1")
+	p := Pd("test-send-topic")
 	for i := 0; i < 10; i++ {
 		_, err := p.Send(context.Background(), &pulsar.ProducerMessage{
 			Payload:   []byte("hello world " + fmt.Sprint(i)),

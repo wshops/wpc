@@ -5,7 +5,8 @@ go 1.19
 require (
 	github.com/apache/pulsar-client-go v0.9.0
 	github.com/gookit/slog v0.4.0
-	go.uber.org/zap v1.17.0
+	github.com/wshops/zlog v1.0.3
+	go.uber.org/zap v1.24.0
 )
 
 require (
