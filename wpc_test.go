@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/gookit/slog"
 	"github.com/wshops/zlog"
 	"testing"
 	"time"
@@ -88,6 +87,6 @@ func TestConsumeMessage(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		slog.Info("message sent")
+		t.Log("message sent")
 	}
 }

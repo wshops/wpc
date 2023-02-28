@@ -2,9 +2,7 @@ package wpc
 
 import (
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/gookit/slog"
 	"github.com/wshops/wpc/wpclogger"
-	"github.com/wshops/zlog"
 	"go.uber.org/zap"
 	"sync"
 	"time"
@@ -14,6 +12,7 @@ type wpc struct {
 	pulsarClient  pulsar.Client
 	producerMap   sync.Map
 	subscriberMap sync.Map
+	log           *zap.SugaredLogger
 }
 
 var instance *wpc
@@ -26,7 +25,7 @@ func New(connectionUrl string, logger *zap.SugaredLogger, pulsarOptions ...*puls
 			URL:               connectionUrl,
 			OperationTimeout:  30 * time.Second,
 			ConnectionTimeout: 30 * time.Second,
-			Logger:            wpclogger.NewWpcLogger(),
+			Logger:            wpclogger.NewBlackholeLogger(logger),
 		})
 	} else {
 		pulsarOptions[0].URL = connectionUrl
@@ -34,10 +33,11 @@ func New(connectionUrl string, logger *zap.SugaredLogger, pulsarOptions ...*puls
 		c, err = pulsar.NewClient(*pulsarOptions[0])
 	}
 	if err != nil {
-		zlog.Log().Fatal(err)
+		logger.Error(err)
 	}
 	instance = &wpc{
 		pulsarClient: c,
+		log:          logger,
 	}
 	return instance
 }
@@ -64,7 +64,7 @@ func (w *wpc) GetProducer(topic string) pulsar.Producer {
 		Topic: topic,
 	})
 	if err != nil {
-		slog.Error(err)
+		w.log.Error(err)
 		return nil
 	}
 	w.producerMap.Store(topic, p)
