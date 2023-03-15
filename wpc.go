@@ -29,7 +29,6 @@ func New(connectionUrl string, logger *zap.SugaredLogger, pulsarOptions ...*puls
 		})
 	} else {
 		pulsarOptions[0].URL = connectionUrl
-		pulsarOptions[0].Logger = wpclogger.NewBlackholeLogger(logger)
 		c, err = pulsar.NewClient(*pulsarOptions[0])
 	}
 	if err != nil {
