@@ -12,8 +12,8 @@ import (
 	"syscall"
 )
 
-const pulsarUrl = "pulsar+ssl://pulsar.cloud.wshop.info:32247"
-const pulsarToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.n9kWq0OPzkSkD2K29XCdbA9weQaXWkabBk7iLchgb7IAgQt_UmpmcpUTWdIoyPR0h2fgVUMk84DjCvFc_o1zkQMA_SCjE0KW-CkpTfxq1wRRGj3R25env5qL8vbSJOkQtMxY5S6AQ-hYpJUqKIpBZYH01AxFxjg-uWNB65WVbJ7GZFMM7zpMsIKNhMIKkjeSDQlpXHcBZfNuXl5QJnI3-a7QHEEUBn03teUNmXLRxAL6kEPFoSh5dmlyOHiLQCChiRwcv4aqbmCf8Y8oI6K5dGIcGw68xsdjtUu-NbLSMPTc2fKdysfaJJ1vHbKlKC-sY3WtC1O1IWsqswenCeOetQ"
+const pulsarUrl = ""
+const pulsarToken = ""
 
 func main() {
 	zlog.New(zlog.LevelDev)
