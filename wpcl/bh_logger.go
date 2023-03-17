@@ -1,4 +1,4 @@
-package wpclogger
+package wpcl
 
 import (
 	"github.com/apache/pulsar-client-go/pulsar/log"
@@ -11,7 +11,7 @@ type BlackHoleLogger struct {
 	le     *BhLogEntry
 }
 
-func NewBlackholeLogger(zapLogger *zap.SugaredLogger) *BlackHoleLogger {
+func NewBlackHoleLogger(zapLogger *zap.SugaredLogger) *BlackHoleLogger {
 	return &BlackHoleLogger{
 		zapLog: zapLogger,
 		le:     NewBhLogEntry(zapLogger),

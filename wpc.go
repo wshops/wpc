@@ -1,78 +1,109 @@
 package wpc
 
 import (
+	"fmt"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/wshops/wpc/wpclogger"
+	"github.com/wshops/wpc/wpcl"
+	"github.com/wshops/wpc/wpcm"
 	"go.uber.org/zap"
-	"sync"
 	"time"
 )
 
-type wpc struct {
-	pulsarClient  pulsar.Client
-	producerMap   sync.Map
-	subscriberMap sync.Map
-	log           *zap.SugaredLogger
+type Wpc struct {
+	log         *zap.SugaredLogger
+	tenantId    string
+	producerMap map[string]wpcm.Producer
+	consumerMap map[string]wpcm.Consumer
 }
 
-var instance *wpc
+var instance *Wpc
 
-func New(connectionUrl string, logger *zap.SugaredLogger, pulsarOptions ...*pulsar.ClientOptions) *wpc {
-	var c pulsar.Client
-	var err error
+func New(connectionUrl string, tenant string, logger *zap.SugaredLogger, pulsarOptions ...*pulsar.ClientOptions) *Wpc {
+	if instance != nil {
+		instance.log.Warn("wpc instance already exists")
+		return instance
+	}
+	var c *pulsar.ClientOptions
 	if len(pulsarOptions) == 0 {
-		c, err = pulsar.NewClient(pulsar.ClientOptions{
+		c = &pulsar.ClientOptions{
 			URL:               connectionUrl,
 			OperationTimeout:  30 * time.Second,
 			ConnectionTimeout: 30 * time.Second,
-			Logger:            wpclogger.NewBlackholeLogger(logger),
-		})
+			Logger:            wpcl.NewBlackHoleLogger(logger),
+		}
 	} else {
-		pulsarOptions[0].URL = connectionUrl
-		c, err = pulsar.NewClient(*pulsarOptions[0])
+		c = pulsarOptions[0]
+		c.URL = connectionUrl
+		if c.Logger == nil {
+			c.Logger = wpcl.NewBlackHoleLogger(logger)
+		}
 	}
+	err := wpcm.InitMessaging(1, c)
 	if err != nil {
-		logger.Error(err)
+		logger.Fatal(err)
 	}
-	instance = &wpc{
-		pulsarClient: c,
-		log:          logger,
+	instance = &Wpc{
+		log:         logger,
+		tenantId:    tenant,
+		producerMap: make(map[string]wpcm.Producer),
+		consumerMap: make(map[string]wpcm.Consumer),
 	}
 	return instance
 }
 
-func Close() {
-	if instance != nil {
-		instance.producerMap.Range(func(key, value interface{}) bool {
-			value.(pulsar.Producer).Close()
-			return true
-		})
-		instance.subscriberMap.Range(func(key, value interface{}) bool {
-			value.(*wpcSubscriber).Close()
-			return true
-		})
-		instance.pulsarClient.Close()
+func RegisterProducer(namespace string, topic string) {
+	p, err := wpcm.CreateProducer(instance.tenantId, namespace, topic)
+	if err != nil {
+		instance.log.Error(err)
+		return
 	}
+	instance.producerMap[BuildTopicPath(instance.tenantId, namespace, topic)] = p
 }
 
-func (w *wpc) GetProducer(topic string) pulsar.Producer {
-	if producer, ok := w.producerMap.Load(topic); ok {
-		return producer.(pulsar.Producer)
-	}
-	p, err := w.pulsarClient.CreateProducer(pulsar.ProducerOptions{
-		Topic: topic,
-	})
-	if err != nil {
-		w.log.Error(err)
+func GetProducer(namespace string, topic string) wpcm.Producer {
+	p := instance.producerMap[BuildTopicPath(instance.tenantId, namespace, topic)]
+	if p == nil {
+		instance.log.Error("Producer not found")
 		return nil
 	}
-	w.producerMap.Store(topic, p)
 	return p
 }
 
-func Pd(topic string) pulsar.Producer {
-	return instance.GetProducer(topic)
+func RegisterConsumer(namespace string, topic string, handler wpcm.Handler) {
+	consumer, err := wpcm.CreateSingleTopicConsumer(instance.tenantId, namespace, topic, handler, wpcm.ConsumerOpts{
+		SubscriptionName: topic + "_subscription",
+		RetryEnabled:     true,
+		InitialPosition:  wpcm.Latest,
+	})
+	if err != nil {
+		instance.log.Error(err)
+		return
+	}
+	instance.consumerMap[BuildTopicPath(instance.tenantId, namespace, topic)] = consumer
 }
-func (w *wpc) GetClient() pulsar.Client {
-	return w.pulsarClient
+
+func GetConsumer(namespace string, topic string) wpcm.Consumer {
+	c := instance.consumerMap[BuildTopicPath(instance.tenantId, namespace, topic)]
+	if c == nil {
+		instance.log.Error("Consumer not found")
+		return nil
+	}
+	return c
+}
+
+func Close() {
+	for _, p := range instance.producerMap {
+		p.Stop()
+	}
+	for _, c := range instance.consumerMap {
+		err := c.Stop()
+		if err != nil {
+			instance.log.Error(err)
+		}
+	}
+	wpcm.Cleanup()
+}
+
+func BuildTopicPath(tenantName, namespace, topicName string) string {
+	return fmt.Sprintf("persistent://%s/%s/%s", tenantName, namespace, topicName)
 }
