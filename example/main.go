@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"github.com/wshops/wpc"
-	"github.com/wshops/wpc/wpcl"
-	"github.com/wshops/wpc/wpcm"
+	"github.com/wshops/wpc/v2/wpcl"
+	"github.com/wshops/wpc/v2/wpcm"
 	"github.com/wshops/zlog"
 	"os"
 	"os/signal"
